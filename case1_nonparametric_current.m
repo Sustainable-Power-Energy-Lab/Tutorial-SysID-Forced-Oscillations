@@ -1,6 +1,12 @@
 % ===========================================================
 % NON-PARAMETRIC ESTIMATION: CURRENT SIGNAL
 % ===========================================================
+% This scripts carries out a Welch-based parametric estimation
+% using a PMU-recorded current signal for forced oscillation
+% identification.
+%
+% Last modification: 02/06/2023 by SADR.
+
 clc
 clear
 close all
@@ -8,8 +14,9 @@ close all
 % ---- Loading event data
 load('data/sysid_power_case1.mat');
 
-%% Visualization
+%% Step 0: Visualization
 
+% ---- Setting up plotting parameters
 width = 8;
 height = 6;
 
@@ -39,8 +46,9 @@ xline(t_event, 'color', 'red', 'linewidth', 2, 'linestyle', '--')
 exportgraphics(fig, 'results/fig_case1_Im.pdf', ...
     'ContentType', 'vector', 'BackGroundColor', 'none');
 
-%% Analyzing Waveform During Event
+%% Step 1: Detrending
 
+% ---- Extracting current signals during the oscillation
 y1 = Im(1202:1802, 5);
 N1 = size(y1, 1);
 t1 = ts:ts:length(y1)*ts;
@@ -49,13 +57,11 @@ y2 = Im(1202:1802,13);
 N2 = size(y2, 1);
 t2 = ts:ts:length(y2)*ts;
 
+% ---- Detrending signals
 y1 = detrend(y1);
 y2 = detrend(y2);
 
-
-% -------------------------------------------------------------------------------
-% Time-domain plot of the signals (during the event)
-% -------------------------------------------------------------------------------
+% ---- Plotting detrended signal during the event
 width = 8;
 height = 6;
 
@@ -80,15 +86,12 @@ xlabel('Time after Event (s)')
 ylabel('$\vert I \vert$ (A)', 'interpreter', 'latex')
 title('Current to Bus 13')
 
-% exportgraphics(fig, 'C:\Users\Sergio\Insync\sergio.dorado.rojas@gmail.com\Dropbox\Apps\Overleaf\sysid_project_presentation\figs\fig_case1_Im-event.pdf', ...
-%     'ContentType', 'vector', 'BackGroundColor', 'none');
+exportgraphics(fig, 'results/fig_case1_Im-event.pdf', ...
+    'ContentType', 'vector', 'BackGroundColor', 'none');
 
+%% Step 2: Analyzing Signal Whiteness
 
-%% Autocorrelation Plot
-
-% -------------------------------------------------------------------------------
-% Analyzing whiteness of signals via autocorrelation
-% -------------------------------------------------------------------------------
+% ---- Settings for autocorrelation plots
 width = 8;
 height = 6;
 
@@ -107,20 +110,17 @@ subplot(212)
 autocorr(y2, 'NumLags', round(N2/4));
 title('$\sigma_{y_2y_2}\left[\ell\right]$', 'interpreter', 'latex')
 
-exportgraphics(fig, 'C:\Users\Sergio\Insync\sergio.dorado.rojas@gmail.com\Dropbox\Apps\Overleaf\sysid_project_presentation\figs\fig_case1_Im-autocorr.pdf', ...
+exportgraphics(fig, 'results/fig_case1_Im-autocorr.pdf', ...
     'ContentType', 'vector', 'BackGroundColor', 'none');
 
-%% Welch-based PSD
+%% Step 3: Welch-based Power Spectral Density estimation
 
-% ================================
-% Plotting Welch-based PSD of input and output
-% ================================
-
-% Window-size
+% ---- Window-size
 Nfft = [128, 256, 512];
 linestyle = {'-', '-', '-', '-'};
 color = {'#191970', '#6495ED', '#00BFFF', '#ADD8E6'};
 
+% ---- Settings for PSD plots
 width = 8;
 height = 12;
 
@@ -134,7 +134,7 @@ set(0, 'DefaultAxesFontName', 'Times')
 for i=length(Nfft):-1:1
 
 subplot(211)
-% PSD estimation using Welch method
+% ---- PSD estimation using Welch method
 [Pyy1, f] = pwelch(y1, Nfft(i), [], Nfft(i), fs);
 plot(f, 10*log10(Pyy1), linestyle{i}, 'color', color{i}, 'DisplayName', ...
     "$N_{FFT}$ = " + string(Nfft(i)))
@@ -172,29 +172,30 @@ end
 
 end
 
-exportgraphics(fig, 'C:\Users\Sergio\Insync\sergio.dorado.rojas@gmail.com\Dropbox\Apps\Overleaf\sysid_project_presentation\figs\fig_case1_Im-PSD.pdf', ...
+exportgraphics(fig, 'results/fig_case1_Im-PSD.pdf', ...
     'ContentType', 'vector', 'BackGroundColor', 'none');
 
-%% Analysis for all Measurements
-
+% -----------------------------------------------------------
+% PSD for all current measurements
+% -----------------------------------------------------------
 clc
 close all
 
-% Looping throughout all voltage measurements
+% ---- Looping throughout all available current measurements
 for i=2:size(Im, 2)
 
-    % ===============================
-    % Preprocessing signals
-    % ===============================
+    % ---- Extracting and detrending signal
     y = Im(1202:1802, i);
     N = size(y, 1);
 
+    % ---- Skip any signals with non-numerical measurements
     if isnan(max(y))
         continue
     end
-
+    % ---- Detrending
     y = detrend(y);
 
+    % ---- Setting up plots
     width = 6;
     height = 6;
 
@@ -209,21 +210,20 @@ for i=2:size(Im, 2)
     title_string = sprintf("{y_{%d} y_{%d}}", i, i);
     title(strcat('$\sigma_', title_string, '\left[\ell\right]$'), 'interpreter', 'latex')
     
-    % Exporting plot
-    output_string = strcat('C:\Users\Sergio\Insync\sergio.dorado.rojas@gmail.com\Dropbox\Apps\Overleaf\sysid_project_presentation\figs\', ...
+    % ---- Exporting signal plot
+    output_string = strcat('results/', ...
         sprintf('fig_case1_Im_%d-autocorr.pdf', i));
-%     exportgraphics(fig, output_string, ...
-%         'ContentType', 'vector', 'BackGroundColor', 'none');
+    exportgraphics(fig, output_string, ...
+        'ContentType', 'vector', 'BackGroundColor', 'none');
 
-    % =============
-    % Welch-based PSD
-    % =============
+    % ---- PSD computation
 
-    % Window-size
+    % ---- Window-size
     Nfft = [128, 256];
     linestyle = {'-', '-', '-', '-'};
     color = {'#191970', '#6495ED', '#00BFFF', '#ADD8E6'};
     
+    % ---- PSD plot parameters
     width = 6;
     height = 6;
 
@@ -235,7 +235,7 @@ for i=2:size(Im, 2)
     set(0, 'DefaultAxesFontName', 'Times')
 
     for j=length(Nfft):-1:1
-        % PSD estimation using Welch method
+        % ---- PSD estimation using Welch method
         [Pyy, f] = pwelch(y, Nfft(j), [], Nfft(j), fs);
         plot(f, 10*log10(Pyy), linestyle{j}, 'color', color{j}, 'DisplayName', ...
             "$N_{FFT}$ = " + string(Nfft(j)))
@@ -258,9 +258,9 @@ for i=2:size(Im, 2)
         end
     end
 
-    % Exporting plot
-    output_string = strcat('C:\Users\Sergio\Insync\sergio.dorado.rojas@gmail.com\Dropbox\Apps\Overleaf\sysid_project_presentation\figs\', ...
+    % ---- Exporting plot
+    output_string = strcat('results/', ...
         sprintf('fig_case1_Im_%d-PSD.pdf', i));
-%     exportgraphics(fig, output_string, ...
-%         'ContentType', 'vector', 'BackGroundColor', 'none');
+    exportgraphics(fig, output_string, ...
+        'ContentType', 'vector', 'BackGroundColor', 'none');
 end

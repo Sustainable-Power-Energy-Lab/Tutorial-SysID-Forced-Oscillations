@@ -1,3 +1,12 @@
+% ===========================================================
+% NON-PARAMETRIC ESTIMATION: VOLTAGE SIGNAL
+% ===========================================================
+% This scripts carries out a Welch-based parametric estimation
+% using a PMU-recorded voltage signal for forced oscillation
+% identification.
+%
+% Last modification: 02/06/2023 by SADR.
+
 clc
 clear
 close all
@@ -5,8 +14,9 @@ close all
 % Loading given data
 load('data\sysid_power_case2.mat');
 
-%% Visualization
+%% Step 0: Visualization
 
+% ---- Setting up plotting parameters
 width = 8;
 height = 6;
 
@@ -33,11 +43,12 @@ xlabel('Time (s)')
 ylabel('$\vert V \vert$ (kV)', 'interpreter', 'latex')
 xline(t_event, 'color', 'red', 'linewidth', 2, 'linestyle', '--')
 
-exportgraphics(fig, 'C:\Users\Sergio\Insync\sergio.dorado.rojas@gmail.com\Dropbox\Apps\Overleaf\sysid_project_presentation\figs\fig_case2_Vm-time-plot.pdf', ...
+exportgraphics(fig, 'results/fig_case2_Vm-time-plot.pdf', ...
     'ContentType', 'vector', 'BackGroundColor', 'none');
 
-%% Data Preprocessing
+%% Step 1: Detrending
 
+% ---- Extracting the voltage signals during the oscillation
 y1 = Vm(1:end-800, 7);
 N1 = size(y1, 1);
 t1 = ts:ts:length(y1)*ts;
@@ -49,6 +60,7 @@ t2 = ts:ts:length(y2)*ts;
 y1 = detrend(y1);
 y2 = detrend(y2);
 
+% ---- Plotting detrended signal during the event
 width = 8;
 height = 6;
 
@@ -75,14 +87,12 @@ xlabel('Time (s)')
 ylabel('$|V|$ (kV)', 'interpreter', 'latex')
 xline(t_event, 'color', 'red', 'linewidth', 2, 'linestyle', '--')
 
-exportgraphics(fig, 'C:\Users\Sergio\Insync\sergio.dorado.rojas@gmail.com\Dropbox\Apps\Overleaf\sysid_project_presentation\figs\fig_case2_Vm-detrend2.pdf', ...
+exportgraphics(fig, 'results/fig_case2_Vm-detrend.pdf', ...
     'ContentType', 'vector', 'BackGroundColor', 'none');
 
-%% Autocorrelation Plot
+%% Step 2: Analyzing Signal Whiteness
 
-% ================================
-% Analyzing whiteness of signals via autocorrelation
-% ================================
+% ---- Settings for autocorrelation plots
 width = 8;
 height = 6;
 
@@ -101,20 +111,17 @@ subplot(212)
 autocorr(y2, 'NumLags', round(N2/4));
 title('$\sigma_{y_2y_2}\left[\ell\right]$', 'interpreter', 'latex')
 
-exportgraphics(fig, 'C:\Users\Sergio\Insync\sergio.dorado.rojas@gmail.com\Dropbox\Apps\Overleaf\sysid_project_presentation\figs\fig_case2_Vm-autocorr.pdf', ...
+exportgraphics(fig, 'results/fig_case2_Vm-autocorr.pdf', ...
     'ContentType', 'vector', 'BackGroundColor', 'none');
 
-%% Welch-based PSD
+%% Step 3: Welch-based Power Spectral Density (PSD) estimation
 
-% ================================
-% Plotting Welch-based PSD of output
-% ================================
-
-% Window-size
+% ---- Window-size
 Nfft = [1024, 2048, 5012];
 linestyle = {'-', '-', '-', '-'};
 color = {'#191970', '#6495ED', '#00BFFF', '#ADD8E6'};
 
+% ---- Settings for PSD plots
 width = 8;
 height = 12;
 
@@ -128,7 +135,7 @@ set(0, 'DefaultAxesFontName', 'Times')
 for i=length(Nfft):-1:1
 
 subplot(211)
-% PSD estimation using Welch method
+% ---- PSD estimation using Welch method
 [Pyy1, f] = pwelch(y1, Nfft(i), [], Nfft(i), fs);
 plot(f, 10*log10(Pyy1), linestyle{i}, 'color', color{i}, 'DisplayName', ...
     "$N_{FFT}$ = " + string(Nfft(i)))
@@ -166,5 +173,5 @@ end
 
 end
 
-exportgraphics(fig, 'C:\Users\Sergio\Insync\sergio.dorado.rojas@gmail.com\Dropbox\Apps\Overleaf\sysid_project_presentation\figs\fig_case2_Vm-PSD.pdf', ...
+exportgraphics(fig, 'results/fig_case2_Vm-PSD.pdf', ...
     'ContentType', 'vector', 'BackGroundColor', 'none');

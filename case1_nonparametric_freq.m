@@ -1,12 +1,22 @@
+% ===========================================================
+% NON-PARAMETRIC ESTIMATION: FREQUENCY SIGNAL
+% ===========================================================
+% This scripts carries out a Welch-based parametric estimation
+% using a PMU-recorded voltage signal for forced oscillation
+% identification.
+%
+% Last modification: 02/06/2023 by SADR.
+
 clc
 clear
 close all
 
 % Loading given data
-load('data\sysid_power_case1.mat');
+load('data/sysid_power_case1.mat');
 
-%% Visualization
+%% Step 0: Visualization
 
+% ---- Setting up plotting parameters
 width = 8;
 height = 6;
 
@@ -33,11 +43,12 @@ xlabel('Time (s)')
 ylabel('$f$ (Hz)', 'interpreter', 'latex')
 xline(t_event, 'color', 'red', 'linewidth', 2, 'linestyle', '--')
 
-exportgraphics(fig, 'C:\Users\Sergio\Insync\sergio.dorado.rojas@gmail.com\Dropbox\Apps\Overleaf\sysid_project_presentation\figs\fig_case1_f.pdf', ...
+exportgraphics(fig, 'results/fig_case1_f.pdf', ...
     'ContentType', 'vector', 'BackGroundColor', 'none');
 
-%% Analyzing Waveform During Event
+%% Step 1: Detrending
 
+% ---- Extracting frequency signals during the oscillation
 y1 = Freq(1202:1802, 5);
 N1 = size(y1, 1);
 t1 = ts:ts:length(y1)*ts;
@@ -46,13 +57,11 @@ y2 = Freq(1202:1802,13);
 N2 = size(y2, 1);
 t2 = ts:ts:length(y2)*ts;
 
+% ---- Detrending signals
 y1 = detrend(y1);
 y2 = detrend(y2);
 
-% ===============================
-% Time-domain plot of the signals (during the event)
-% ===============================
-
+% ---- Plotting detrended signal during the event
 width = 8;
 height = 6;
 
@@ -77,11 +86,12 @@ xlabel('Time after Event (s)')
 ylabel('$f$ (Hz)', 'interpreter', 'latex')
 title('Frequency at Bus 5')
 
-exportgraphics(fig, 'C:\Users\Sergio\Insync\sergio.dorado.rojas@gmail.com\Dropbox\Apps\Overleaf\sysid_project_presentation\figs\fig_case1_f-event.pdf', ...
+exportgraphics(fig, 'results/fig_case1_f-event.pdf', ...
     'ContentType', 'vector', 'BackGroundColor', 'none');
 
-%% Autocorrelation Plot
+%% Step 2: Analyzing Signal Whiteness
 
+% ---- Settings for autocorrelation plots
 width = 8;
 height = 6;
 
@@ -100,20 +110,17 @@ subplot(212)
 autocorr(y2, 'NumLags', round(N2/4));
 title('$\sigma_{y_2y_2}\left[\ell\right]$', 'interpreter', 'latex')
 
-exportgraphics(fig, 'C:\Users\Sergio\Insync\sergio.dorado.rojas@gmail.com\Dropbox\Apps\Overleaf\sysid_project_presentation\figs\fig_case1_f-autocorr.pdf', ...
+exportgraphics(fig, 'results/fig_case1_f-autocorr.pdf', ...
     'ContentType', 'vector', 'BackGroundColor', 'none');
 
-%% Welch-based PSD
+%% Step 3: Welch-based Power Spectral Density (PSD) estimation
 
-% ================================
-% Plotting Welch-based PSD of input and output
-% ================================
-
-% Window-size
+% ---- Window-size
 Nfft = [128, 256, 512];
 linestyle = {'-', '-', '-', '-'};
 color = {'#191970', '#6495ED', '#00BFFF', '#ADD8E6'};
 
+% ---- Settings for PSD plots
 width = 8;
 height = 12;
 
@@ -165,29 +172,31 @@ end
 
 end
 
-exportgraphics(fig, 'C:\Users\Sergio\Insync\sergio.dorado.rojas@gmail.com\Dropbox\Apps\Overleaf\sysid_project_presentation\figs\fig_case1_f-PSD.pdf', ...
+exportgraphics(fig, 'results/fig_case1_f-PSD.pdf', ...
     'ContentType', 'vector', 'BackGroundColor', 'none');
 
-%% Analysis for all Measurements
-
+% -----------------------------------------------------------
+% PSD for all frequency measurements
+% -----------------------------------------------------------
 clc
 close all
 
-% Looping throughout all voltage measurements
+% ---- Looping throughout all voltage measurements
 for i=2:size(Freq, 2)
 
-    % ===============================
-    % Preprocessing signals
-    % ===============================
+    % ---- Extracting and detrending signal
     y = Freq(1202:1802, i);
     N = size(y, 1);
-
+    
+    % ---- Skip any signals with non-numerical measurements
     if isnan(max(y))
         continue
     end
-
+    
+    % ---- Detrending
     y = detrend(y);
 
+    % ---- Setting up plots
     width = 6;
     height = 6;
 
@@ -202,21 +211,20 @@ for i=2:size(Freq, 2)
     title_string = sprintf("{y_{%d} y_{%d}}", i, i);
     title(strcat('$\sigma_', title_string, '\left[\ell\right]$'), 'interpreter', 'latex')
     
-    % Exporting plot
-    output_string = strcat('C:\Users\Sergio\Insync\sergio.dorado.rojas@gmail.com\Dropbox\Apps\Overleaf\sysid_project_presentation\figs\', ...
+    % ---- Exporting signal
+    output_string = strcat('results/', ...
         sprintf('fig_case1_f_%d-autocorr.pdf', i));
-%     exportgraphics(fig, output_string, ...
-%         'ContentType', 'vector', 'BackGroundColor', 'none');
+    exportgraphics(fig, output_string, ...
+        'ContentType', 'vector', 'BackGroundColor', 'none');
 
-    % =============
-    % Welch-based PSD
-    % =============
+    % ---- PSD computation
 
-    % Window-size
+    % ---- Window-size
     Nfft = [128, 256];
     linestyle = {'-', '-', '-', '-'};
     color = {'#191970', '#6495ED', '#00BFFF', '#ADD8E6'};
     
+    % ---- PSD plot parameters
     width = 6;
     height = 6;
 
@@ -228,7 +236,7 @@ for i=2:size(Freq, 2)
     set(0, 'DefaultAxesFontName', 'Times')
 
     for j=length(Nfft):-1:1
-        % PSD estimation using Welch method
+        % ---- PSD estimation using Welch method
         [Pyy, f] = pwelch(y, Nfft(j), [], Nfft(j), fs);
         plot(f, 10*log10(Pyy), linestyle{j}, 'color', color{j}, 'DisplayName', ...
             "$N_{FFT}$ = " + string(Nfft(j)))
@@ -251,10 +259,10 @@ for i=2:size(Freq, 2)
         end
     end
 
-    % Exporting plot
-    output_string = strcat('C:\Users\Sergio\Insync\sergio.dorado.rojas@gmail.com\Dropbox\Apps\Overleaf\sysid_project_presentation\figs\', ...
+    % ---- Exporting plot
+    output_string = strcat('results/', ...
         sprintf('fig_case1_Im_%d-PSD.pdf', i));
-%     exportgraphics(fig, output_string, ...
-%         'ContentType', 'vector', 'BackGroundColor', 'none');
+    exportgraphics(fig, output_string, ...
+        'ContentType', 'vector', 'BackGroundColor', 'none');
 
 end
