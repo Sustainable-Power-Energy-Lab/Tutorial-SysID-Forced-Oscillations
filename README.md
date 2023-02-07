@@ -1,5 +1,9 @@
 # Tutorial: Statistical System Identification Methods for Subsynchronous Forced Oscillations
 
+<p align="center">
+  <img src = "utils/fig_tutorial-plots.gif">
+</p>
+
 This repository contains the MATLAB code and data accompanying the paper, _A Tutorial on Identification of Subsynchronous Mode Frequencies in Power Transmission Systems using Parametric and Non-parametric Methods_, presented at the [2023 Texas Power and Energy Conference](https://tpec.engr.tamu.edu/).
 
 The tutorial encompasses two cases: a single mode (unimodal) forced oscillation (case 1), and a multi-modal forced oscillation, labeled as case 2. Each of the `*.m` files uses a different observable among current, frequency, and voltage. The two different statistical techniques are:
@@ -9,7 +13,7 @@ The tutorial encompasses two cases: a single mode (unimodal) forced oscillation 
 
 ## Compatibility
 
-The code in this repository was developed using MATLAB R2021b in Windows.
+The code in this repository was developed using MATLAB R2021b in Windows. It has been tested in the latest release as of this publication (R2022b).
 
 ## Citing
 
@@ -34,3 +38,7 @@ This repository is [licensed](./LICENSE.txt) under the [GNU Affero General Publi
 ## Acknowledgements
 
 This work was funded in part by the Colombian Ministry of Science, Technology, and Innovation (Minciencias) under grant agreement number 885-2020, and in part by the Eversource Energy Center project entitled _A Pathway to Enable Sustainable Modern Power Systems: Optimal System Dispatch_.
+
+## Contact
+
+[Sergio A. Dorado-Rojas](mailto:sergio.dorado@uconn.edu) and [Zongjie Wang](mailto:zongjie.wang@uconn.edu).
