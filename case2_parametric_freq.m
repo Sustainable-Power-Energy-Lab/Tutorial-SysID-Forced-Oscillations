@@ -1,14 +1,28 @@
-%% Loading Data
+% ===========================================================
+% PARAMETRIC ESTIMATION: FREQUENCY SIGNAL
+% ===========================================================
+% This scripts carries out an autoregressive (AR) parametric estimation
+% using a PMU-recorded current signal for forced oscillation
+% identification.
+%
+% Last modification: 02/07/2023 by SADR.
 clc
 clear 
 close all
 
-% Loading given data (measurements in `y`; `N` observations)
-load data/sysid_power_case2.mat
+% Loading data:
+% - `Freq`:     frequency measurements.
+% - `fs`:       PMU data sampling rate.
+% - `ts`:       PMU data samping time.
+% - `time`:     time measurement vector.
+% - `t_event`:  start time of the oscillation
+% - `Im`:       current magnitude.
+% - `Vm`:       voltage magnitude.
+load('data/sysid_power_case2.mat');
 
-%% Loading Data for First Fitting
+%% Step 1: Data Preprocessing
 
-% Reduction points 
+% ---- Reduction points 
 M = 800;
 
 y1 = Freq(1:end - M, 7);
@@ -19,29 +33,29 @@ y2 = Freq(1:end - M, 10);
 N2 = size(y2, 1);
 t2 = ts:ts:length(y2)*ts;
 
-% Detrending measurements
+% ---- Detrending measurements
 y1 = detrend(y1);
 y2 = detrend(y2);
 
-% Taking the number of measurements as N+1 (using N)
-% see report for more details
+% ---- Taking the number of measurements as N+1 (using N)
 N1 = N1 - 1;
 N2 = N2 - 1;
 
-% Measurements to from k=1 to k=N
+% ---- Measurements to from k=1 to k=N
 y1_meas = Freq(2:end - M, 7);
 y2_meas = Freq(2:end - M, 10);
 
+% ---- Detrending measurements
 y1_meas = detrend(y1_meas);
 y2_meas = detrend(y2_meas);
 
-%% Fitting AR Model
+%% Step 2: Fitting AR Model
 
-% Minimum and maximum orders of the AR models
+% ---- Minimum and maximum orders of the AR models
 na_min = 1;
 na_max = 40;
 
-% Initializing containers
+% ---- Initializing containers
 theta1 = {};
 theta2 = {};
 mse1 = {};
@@ -53,34 +67,34 @@ sys_AR2 = {};
 theta_AR2 = {};
 mse_AR2 = {};
 
-% ================================
-% Estimation of the AR model
-% ================================
+% -----------------------------------------------------------
+% AR estimation
+% -----------------------------------------------------------
 for na=na_min:na_max
-    % Building the `phi` matrix
+    % ---- Direct solution of the LS estimation problem
     
-    % Initialization
+    % ---- Initialization
     phi1 = zeros(N1, na);
     phi2 = zeros(N2, na);
 
-    % Populating the columns
+    % ---- Populating the columns
     for j=1:na
         phi1(j:end-1, j) = -y1(1:end-1-j);
         phi2(j:end-1, j) = -y2(1:end-1-j);
     end
     
-    % Regression
+    % ---- Regression
     theta1{na} = pinv(phi1)*y1_meas;
     theta2{na} = pinv(phi2)*y2_meas;
     
-    % Computation of MSE
+    % ---- Computation of MSE
     mse1{na} = (1/N1)*(y1_meas - phi1*theta1{na}).'*(y1_meas - phi1*theta1{na});
     mse2{na} = (1/N2)*(y2_meas - phi2*theta1{na}).'*(y2_meas - phi2*theta2{na});
 
     res1{na} = y1_meas - phi1*theta1{na};
     res2{na} = y2_meas - phi2*theta2{na};
 
-    % MATLAB's method
+    % ---- MATLAB's method
     sys_AR1{na} = ar(y1, na, 'ls');
     sys_AR2{na} = ar(y2, na, 'ls');
     theta_AR1{na} = sys_AR1{na}.Report.Parameters.ParVector;
@@ -91,10 +105,12 @@ for na=na_min:na_max
     mse_AR2{na} = sys_AR2{na}.Report.Fit.MSE;
 end
 
-%% Model Order Selection
+%% Step 3: Model Order Selection
 
 clc
+close all
 
+% ---- Plot settings for the MSE error (as a function of the model order)
 width = 10;
 height = 6;
 
@@ -119,8 +135,9 @@ lgd.Location = 'northeast';
 xlim([na_min, na_max])
 xlabel('Model Order ($n_a$)', 'interpreter', 'latex');
 
+% ---- Plotting the difference between parameters
+% ---- of the direct solution and of MATLAB's AR function
 subplot(122)
-
 diff_par = {};
 
 for i=na_min:na_max
@@ -134,11 +151,14 @@ ylabel('$\Vert\hat{\theta}_{AR}-\hat{\theta}_{ML}\Vert_2$', ...
     'interpreter', 'latex')
 xlim([na_min, na_max])
 
-exportgraphics(fig, 'C:\Users\Sergio\Insync\sergio.dorado.rojas@gmail.com\Dropbox\Apps\Overleaf\sysid_project_presentation\figs\fig_case2_f_model-order.pdf', ...
+exportgraphics(fig, 'results/fig_case2_f_model-order.pdf', ...
     'ContentType', 'vector', 'BackGroundColor', 'none');
 
-%% Residual Whiteness Analysis
+%% Step 4: Residual Whiteness Analysis
 
+close all
+
+% ---- Settings for the autocorrelation plot
 width = 10;
 height = 6;
 
@@ -149,7 +169,7 @@ set(0,'DefaultTextFontSize', 18)
 set(0, 'DefaultTextFontName', 'Times')
 set(0, 'DefaultAxesFontName', 'Times')
 
-% Model order
+% ---- Model order (can be changed according to the results of Step 3))
 n_a = 15;
 
 subplot(221)
@@ -175,17 +195,22 @@ ylabel('$r[t]$', 'interpreter', 'latex')
 subplot(224)
 autocorr(res_AR1{n_a}, round(N1/4))
 
-exportgraphics(fig, 'C:\Users\Sergio\Insync\sergio.dorado.rojas@gmail.com\Dropbox\Apps\Overleaf\sysid_project_presentation\figs\fig_case2_f_residual-20.pdf', ...
+exportgraphics(fig, 'results/fig_case2_f_residual-20.pdf', ...
     'ContentType', 'vector', 'BackGroundColor', 'none');
 
-%% Mode frequency computation
+%% Step 5: Mode frequency computation
 
+close all
+
+% ---- Getting the poles as the roots of the characteristic polynomial
 poles_LS = roots([1 theta1{n_a}.']);
+% ---- Converting to CT domain at the sampling frequency
 poles_LS_CT = log(poles_LS)*fs;
 
 poles_AR = roots([1 theta_AR1{n_a}.']);
 poles_AR_CT = log(poles_LS)*fs;
 
+% ---- Settings for the pole plots
 width = 8;
 height = 6;
 
@@ -209,22 +234,34 @@ xlabel('Real Axis ($\sigma$)', 'interpreter', 'latex')
 ylabel('Imaginary Axis ($j\omega$)', 'interpreter', 'latex')
 xlim([-20 0.1])
 
-exportgraphics(fig, 'C:\Users\Sergio\Insync\sergio.dorado.rojas@gmail.com\Dropbox\Apps\Overleaf\sysid_project_presentation\figs\fig_case2_f_pole-diagram.pdf', ...
+exportgraphics(fig, 'results/fig_case2_f_pole-diagram.pdf', ...
     'ContentType', 'vector', 'BackGroundColor', 'none');
 
-%% Estimation of frequency and damping
+%% Step 6: Estimation of frequency and damping
 
+% -----------------------------------------------------------
+% LSE implementation
+% -----------------------------------------------------------
+
+% ---- Computation of the frequency using the resulting poles
 w_estimated_LS = imag(poles_LS_CT);
-sigma_estimated_LS = real(poles_LS_CT);
 
+% ---- Computation of the damping using the resulting poles
+sigma_estimated_LS = real(poles_LS_CT);
 magn_LS = sqrt(w_estimated_LS.^2 + sigma_estimated_LS.^2);
 
 f_estimated_LS = w_estimated_LS / (2*pi)
 damp_estimated_LS = (-sigma_estimated_LS ./ magn_LS) * 100
 
-w_estimated_AR = imag(poles_AR_CT);
-sigma_estimated_AR = real(poles_AR_CT);
+% -----------------------------------------------------------
+% AR model
+% -----------------------------------------------------------
 
+% ---- Computation of the frequency using the resulting poles
+w_estimated_AR = imag(poles_AR_CT);
+
+% ---- Computation of the damping using the resulting poles
+sigma_estimated_AR = real(poles_AR_CT);
 magn_AR = sqrt(w_estimated_AR.^2 + sigma_estimated_AR.^2);
 
 f_estimated_AR = w_estimated_AR / (2*pi)
